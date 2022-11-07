@@ -1,3 +1,9 @@
+#This is a c-minus compiler program written by
+# Parham Bateni     Student number: 99105294
+# Pouya EsmailAkhondi       Student number:
+# Alireza Norouzi       Student number:
+# as the project of Compiler Design course held at Sharif University of Technology at Fall semester of 2022-2023
+
 INPUT_FILE_NAME='input.txt'
 TOKENS_FILE_NAME='tokens.txt'
 ERRORS_FILE_NAME='lexical_errors.txt'
@@ -16,6 +22,7 @@ class Scanner:
         self.eof_pointer=len(text)-1
         self.line_number=0
         self.scan_is_ended=False
+        self.q_state=0
 
         self.tokens_table= 'lineno\tRecognized Tokens\n'
         self.errors_table= 'lineno\tError Message\n'
@@ -58,8 +65,6 @@ class Scanner:
         with open(SYMBOL_TABLE_FILE_NAME,'w') as f:
             f.write(self.symbols_table)
 
-
-
 if __name__ == '__main__':
     code=open('input.txt','r').read()
     scanner=Scanner(code)
@@ -67,12 +72,3 @@ if __name__ == '__main__':
     while not scanner.scan_is_ended:
         token=scanner.get_next_token()
         # parse the token to parser in the next phase
-
-
-
-
-
-
-
-
-
