@@ -1,6 +1,7 @@
 # This is a c-minus compiler program written by
 # Parham Bateni     Student number: 99105294
 # Pooya EsmaeilAkhoondi       Student number: 99109303
+# Alireza Noroozi   Student number: 99105797
 # as the project of Compiler Design course held at Sharif University of Technology at Fall semester of 2022-2023
 # More details on the project can be found at https://github.com/My-Sharif-Projects/Compiler-Project-Fall-2022-2023
 from Scanner import Scanner
