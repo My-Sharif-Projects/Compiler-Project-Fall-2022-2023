@@ -24,6 +24,8 @@ class Token:
     def __init__(self, type: str, string: str):
         self.type = type
         self.string = string
+    def __repr__(self):
+        return f'({self.type}, {self.string})'
 
 
 class Scanner:
