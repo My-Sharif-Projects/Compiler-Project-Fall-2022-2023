@@ -5,3 +5,4 @@ Scanner DFA:
 ![Scanner DFA](https://user-images.githubusercontent.com/79264909/203630026-4798ca58-201e-4d32-a032-1a9cb84b4dda.png)
 ## Phase2: writing the code of LR(1) parser
 Grammar:
+![image](https://user-images.githubusercontent.com/79264909/210583402-acf0028a-f790-4433-9fca-25f8870ae42a.png)
