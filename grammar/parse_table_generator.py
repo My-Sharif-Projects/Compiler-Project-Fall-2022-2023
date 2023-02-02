@@ -1,7 +1,7 @@
 import re
 import json
 import os
-
+import subprocess
 
 # you can uncomment this once you have
 # made sure bison 3.8.2 is installed.
@@ -18,7 +18,8 @@ def correct_form(token):
 
 f = open("grammar.output", "r")
 content = f.read()
-content = content.replace('ε', 'epsilon')
+if '3.8.2' in subprocess.check_output('bison --version',shell=True).decode('utf-8'):content = content.replace('ε', 'epsilon')
+elif '2.4.1' in subprocess.check_output('bison --version',shell=True).decode('utf-8'):content = content.replace('/* empty */','epsilon')
 f.close()
 x = content.split('\n\n\n')
 

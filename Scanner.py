@@ -24,6 +24,7 @@ class Token:
     def __init__(self, type: str, string: str):
         self.type = type
         self.string = string
+
     def __repr__(self):
         return f'({self.type}, {self.string})'
 
@@ -50,6 +51,7 @@ class Scanner:
         self.errors_table = ''
         self.symbols_table = '\n'.join([f'{i + 1}.\t{KEYWORDS[i]}' for i in range(len(KEYWORDS))]) + '\n'
         self.symbols = KEYWORDS.copy()
+        self.ids_table = dict()
         self.symbols_table_counter = len(KEYWORDS) + 2
 
     def move_pointer_back(self, current_character):
@@ -247,6 +249,8 @@ class Scanner:
                 self.update_tokens_table(found_token)
                 if found_token.type == TokenType.ID and found_token.string not in self.symbols:
                     self.update_symbols_table(found_token.string)
+                    if self.ids_table.get(found_token.string) is None:
+                        self.ids_table[found_token.string] = len(self.ids_table)
         return found_token
 
     def update_tokens_table(self, token: Token):

@@ -1,29 +1,37 @@
 import json
+
+from InterCodeGen import InterCodeGen
 from Scanner import Scanner, TokenType
 
-DEBUG_MODE=False
+DEBUG_MODE = False
+
+
 def debug_print(*args):
-    if DEBUG_MODE:print(*args)
-    
+    if DEBUG_MODE: print(*args)
+
+
 class Node:
     def __init__(self, value, children):
         self.value = value
         self.children = children
-        self.visited=False
+        self.visited = False
         self.depth = 0
+
     def __repr__(self):
         return str(self.value)
 
     def increase_depth(self):
         self.depth += 1
 
-class Parser:
-    def __init__(self,syntax_error_file_name,parse_tree_file_name,SLR_table_file_name,scanner:Scanner):
-        self.syntax_error_file_name=syntax_error_file_name
-        self.parse_tree_file_name=parse_tree_file_name
-        self.SLR_table_file_name=SLR_table_file_name
-        self.scanner = scanner
 
+class Parser:
+    def __init__(self, syntax_error_file_name, parse_tree_file_name, SLR_table_file_name, scanner: Scanner,
+                 inter_code_gen: InterCodeGen):
+        self.syntax_error_file_name = syntax_error_file_name
+        self.parse_tree_file_name = parse_tree_file_name
+        self.SLR_table_file_name = SLR_table_file_name
+        self.scanner = scanner
+        self.intermediate_code_generator = inter_code_gen
         self.extract_grammar_from_SLR_table()
 
         self.parse_stack = ['0']
@@ -31,9 +39,9 @@ class Parser:
         self.parse_tree = []
         self.current_node = None
         self.array_history = []
-        self.syntax_error_message=''
-        self.parse_finished=False
-        self.parse_halted=False
+        self.syntax_error_message = ''
+        self.parse_finished = False
+        self.parse_halted = False
 
     def extract_grammar_from_SLR_table(self):
         table_json = open(self.SLR_table_file_name)
@@ -57,11 +65,12 @@ class Parser:
         debug_print("parse_table = ", self.parse_table)
 
     def get_next_token_from_scanner(self):
-        token=self.scanner.get_next_token()
-        while token.type in(TokenType.COMMENT,TokenType.WHITESPACE):
-            token=self.scanner.get_next_token()
-        debug_print('new token is taken from scanner:',token)
+        token = self.scanner.get_next_token()
+        while token.type in (TokenType.COMMENT, TokenType.WHITESPACE):
+            token = self.scanner.get_next_token()
+        debug_print('new token is taken from scanner:', token)
         return token
+
     def process(self):
         token = self.get_next_token_from_scanner()
         while not self.parse_finished:
@@ -75,31 +84,32 @@ class Parser:
             if token.string not in what_to_do_dictionary.keys() and token.type not in what_to_do_dictionary.keys():
                 debug_print('******************************\nEntering panic mode')
                 debug_print('parse_stack before panic mode: ', self.parse_stack)
-                self.syntax_error_message+=f'#{self.scanner.line_number} : syntax error , illegal {token.string}\n'
-                while not list(filter(lambda x: x.startswith('goto'),self.parse_table[self.parse_stack[-1]].values())):
+                self.syntax_error_message += f'#{self.scanner.line_number} : syntax error , illegal {token.string}\n'
+                while not list(filter(lambda x: x.startswith('goto'), self.parse_table[self.parse_stack[-1]].values())):
                     self.parse_stack.pop(-1)
                     self.parse_stack.pop(-1)
                     self.parse_stack_nodes.pop(-1)
-                    discarded=self.parse_stack_nodes.pop(-1)
+                    discarded = self.parse_stack_nodes.pop(-1)
                     self.syntax_error_message += f'syntax error , discarded {discarded} from stack\n'
-                s=self.parse_stack[-1]
+                s = self.parse_stack[-1]
                 panic_goto_options = sorted(list(
-                    filter(lambda x:self.parse_table[self.parse_stack[-1]][x].startswith('goto'), self.parse_table[self.parse_stack[-1]])))
-                debug_print('panic goto options:',panic_goto_options)
+                    filter(lambda x: self.parse_table[self.parse_stack[-1]][x].startswith('goto'),
+                           self.parse_table[self.parse_stack[-1]])))
+                debug_print('panic goto options:', panic_goto_options)
                 panic_non_terminal = None
-                token=self.get_next_token_from_scanner()
+                token = self.get_next_token_from_scanner()
                 while not panic_non_terminal:
                     for option in panic_goto_options:
                         if token.string in self.follow[option] or token.type in self.follow[option]:
-                            panic_non_terminal=option
+                            panic_non_terminal = option
                             break
                     if not panic_non_terminal:
-                        if token.string=='$':
+                        if token.string == '$':
                             self.halt_process()
                             break
-                        self.syntax_error_message+=f'#{self.scanner.line_number} : syntax error , discarded {token.string} from input\n'
-                        token=self.get_next_token_from_scanner()
-                if self.parse_halted:break
+                        self.syntax_error_message += f'#{self.scanner.line_number} : syntax error , discarded {token.string} from input\n'
+                        token = self.get_next_token_from_scanner()
+                if self.parse_halted: break
                 self.syntax_error_message += f'#{self.scanner.line_number} : syntax error , missing {panic_non_terminal}\n'
 
                 self.parse_stack.append(panic_non_terminal)
@@ -129,7 +139,7 @@ class Parser:
                     debug_print("parse_stack = ", self.parse_stack)
                     debug_print("current_state = ", current_state)
                     debug_print("what_to_do_dictionary = ", what_to_do_dictionary)
-                    token=self.get_next_token_from_scanner()
+                    token = self.get_next_token_from_scanner()
                 elif what_to_do.startswith("reduce_"):
                     production_rule_for_reduction = self.grammar[what_to_do[7:]]
                     debug_print("production_rule_for_reduction = ", production_rule_for_reduction)
@@ -166,6 +176,10 @@ class Parser:
                     # When we push sth to stack, we go to new state, so we should update below two variables
                     current_state = self.parse_stack[-1]
                     what_to_do_dictionary = self.parse_table[current_state]
+
+                    # Call code generator
+                    self.intermediate_code_generator.codegen(action=self.grammar[what_to_do[7:]][0],
+                                                             last_input=token.string)
                     debug_print("Reduction Successful")
                     debug_print("parse_stack = ", self.parse_stack)
                     debug_print("current_state = ", current_state)
@@ -183,11 +197,12 @@ class Parser:
                     second_node = self.parse_stack_nodes[3]
                     debug_print("first_node = ", first_node.value, " ", first_node.children)
                     debug_print("second_node = ", second_node.value, " ", second_node.children)
-                    self.parse_finished=True
+                    self.parse_finished = True
                     self.get_next_token_from_scanner()
         if self.parse_finished and not self.parse_halted:
             self.save_parse_tree()
             self.save_syntax_errors()
+            self.intermediate_code_generator.write_program_block_to_file()
 
     def create_node(self, parse_stack_stats, current_non_terminal):
         debug_print("create node: parse_stack_stats = ", parse_stack_stats)
@@ -203,47 +218,48 @@ class Parser:
         return node
 
     def halt_process(self):
-        self.parse_finished=True
-        self.parse_halted=True
-        self.syntax_error_message+=f'#{self.scanner.line_number} : syntax error , Unexpected EOF\n'
-        with open(self.parse_tree_file_name,'w') as f:
+        self.parse_finished = True
+        self.parse_halted = True
+        self.syntax_error_message += f'#{self.scanner.line_number} : syntax error , Unexpected EOF\n'
+        with open(self.parse_tree_file_name, 'w') as f:
             f.write('')
         self.save_syntax_errors()
 
     def save_syntax_errors(self):
         if not self.syntax_error_message:
-            self.syntax_error_message='There is no syntax error.'
-        with open(self.syntax_error_file_name,'w') as f:
+            self.syntax_error_message = 'There is no syntax error.'
+        with open(self.syntax_error_file_name, 'w') as f:
             f.write(self.syntax_error_message)
+
     def save_parse_tree(self):
-        def recursive_save(array_history:list,string='')->str:
-            string_save=string
-            parent,last_child_reached=array_history[-1]
-            for i in range(1,len(array_history)-1):
+        def recursive_save(array_history: list, string='') -> str:
+            string_save = string
+            parent, last_child_reached = array_history[-1]
+            for i in range(1, len(array_history) - 1):
                 if array_history[i][1]:
-                    string_save+=4*' '
+                    string_save += 4 * ' '
                 else:
-                    string_save+='│'+3*' '
-            value=f'({parent.value[0]}, {parent.value[1]})' if isinstance(parent.value,tuple) else parent.value
-            if len(array_history)==1:
-                string_save+=f'{value}\n'
+                    string_save += '│' + 3 * ' '
+            value = f'({parent.value[0]}, {parent.value[1]})' if isinstance(parent.value, tuple) else parent.value
+            if len(array_history) == 1:
+                string_save += f'{value}\n'
             else:
                 if last_child_reached:
                     string_save += f'└── {value}\n'
                 else:
                     string_save += f'├── {value}\n'
-            for i,child in enumerate(parent.children):
-                if i==len(parent.children)-1:
+            for i, child in enumerate(parent.children):
+                if i == len(parent.children) - 1:
                     string_save = recursive_save(array_history + [(child, True)], string_save)
                 else:
-                    string_save=recursive_save(array_history+[(child,False)],string_save)
+                    string_save = recursive_save(array_history + [(child, False)], string_save)
             return string_save
 
         root = self.current_node
 
         # array_history is the array of (Node, True/False) showing the path inside the tree we are currently traversing. The first element is probably the root.
         # If (Node, True) is inside the array, it means we have reached the last child of Node. (Node, False) means otherwise.
-        array_history=[(root,False)]
-        string=recursive_save(array_history)
+        array_history = [(root, False)]
+        string = recursive_save(array_history)
         with open(self.parse_tree_file_name, 'w', encoding='utf-8') as f:
             f.write(string.strip())

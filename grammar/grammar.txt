@@ -1,37 +1,66 @@
 1. program -> declaration_list
 2. declaration_list -> declaration_list declaration | declaration
 3. declaration -> var_declaration | fun_declaration
-4. var_declaration -> type_specifier ID ; | type_specifier ID [ NUM ] ;
+4. var_declaration -> type_specifier PID ID ; Declare| type_specifier PID ID [ Num ] Array_declare;
 5. type_specifier -> int | void
-6. fun_declaration -> type_specifier ID ( params ) compound_stmt
+6. fun_declaration -> type_specifier PID ID ( params ) compound_stmt
 7. params -> param_list | void
 8. param_list -> param_list , param | param
-9. param -> type_specifier ID | type_specifier ID [ ]
-10. compound_stmt -> { local_declarations statement_list }
+9. param -> type_specifier PID ID | type_specifier PID ID [ ]
+10. compound_stmt -> Add_scope { local_declarations statement_list } Reduce_scope
 11. local_declarations -> local_declarations var_declaration | Epsilon
 12. statement_list -> statement_list statement | Epsilon
-13. statement -> expression_stmt | compound_stmt | selection_stmt | iteration_stmt | return_stmt | switch_stmt
-14. expression_stmt -> expression ; | break ; | ;
-15. selection_stmt -> if ( expression ) statement endif | if ( expression ) statement else statement endif
-16. iteration_stmt -> while ( expression ) statement
+13. statement -> expression_stmt | compound_stmt | selection_stmt | iteration_stmt | return_stmt | switch_stmt | output_stmt
+14. expression_stmt -> expression ; Mark_assignment | break ; Break | ;
+15. selection_stmt -> if ( expression ) Save statement endif Jpf| if ( expression ) Save statement else Jpf_save statement Jp endif
+16. iteration_stmt -> Jmp_save while Label( expression )Save statement While
 17. return_stmt -> return ; | return expression ;
-18. switch_stmt -> switch ( expression ) { case_stmts default_stmt }
+18. switch_stmt -> Jmp_save switch ( expression ) Add_scope { case Eq_switch Num : Save statement_list case_stmts default_stmt } Switch_Jmp | Jmp_save switch ( expression ) Add_scope { default : statement_list } Switch_Jmp
 19. case_stmts -> case_stmts case_stmt | Epsilon
-20. case_stmt -> case NUM : statement_list
-21. default_stmt -> default : statement_list | Epsilon
-22. expression -> var = expression | simple_expression
-23. var -> ID | ID [ expression ]
-24. simple_expression -> additive_expression relop additive_expression | additive_expression
-25. relop -> < | == 
-26. additive_expression -> additive_expression addop term | term
-27. addop -> + | -
-28. term -> term mulop factor | factor
-29. mulop -> * | /
-30. factor -> ( expression ) | var | call | NUM
-31. call -> ID ( args )
+20. case_stmt -> Jpf case Num Eq_switch : Save statement_list
+21. default_stmt -> Jpf default : statement_list | Epsilon
+22. expression -> var = expression Assign | simple_expression
+23. var -> PID ID | PID ID [ expression ] Array_access
+24. simple_expression -> additive_expression lt additive_expression Lt|additive_expression eq additive_expression Eq| additive_expression
+25. lt -> <
+26. additive_expression -> additive_expression addop term Add|additive_expression subop term Sub | term
+27. output_stmt -> output(simple_expression);Print
+28. term -> term mulop factor Mult |term divop factor Div| factor
+29. eq -> ==
+30. factor -> ( expression ) | var | call | Num
+31. call -> PID ID ( args )
 32. args -> arg_list | Epsilon
 33. arg_list -> arg_list , expression | expression
-
+34. addop -> +
+35. subop -> -
+36. mulop -> *
+37. divop -> /
+38. PID -> Epsilon
+39. Assign -> Epsilon
+40. Add -> Epsilon
+41. Sub -> Epsilon
+42. Mult -> Epsilon
+43. Div -> Epsilon
+44. While -> Epsilon
+45. Label -> Epsilon
+46. Save -> Epsilon
+47. Jpf -> Epsilon
+48. Jp -> Epsilon
+49. Jpf_save -> Epsilon
+50. Print -> Epsilon
+51. Lt -> Epsilon
+52. Eq -> Epsilon
+53. Declare -> Epsilon
+54. Num -> Save_constant NUM
+55. Save_constant -> Epsilon
+56. Array_declare -> Epsilon
+57. Array_access -> Epsilon
+58. Jmp_save -> Epsilon
+59. Eq_switch -> Epsilon
+60. Break -> Epsilon
+61. Switch_Jmp -> Epsilon
+62. Add_scope -> Epsilon
+63. Reduce_scope -> Epsilon
 
 Keywords: else if int return void while switch case default break endif
 
